@@ -1,5 +1,4 @@
 Import-Csv "ADD PATH TO TEST URL CSV HERE" | Foreach-Object { 
-
     foreach ($property in $_.PSObject.Properties)
     {
        $currentURL = 'https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=' + $property.Value
@@ -10,7 +9,5 @@ for($i = 0; $i -le $arrayCount; $i++){
 $element = $testResults.lighthouseResult.audits.'render-blocking-resources'.details.items.GetValue($i)
 $element | Export-Csv 'ADD PATH AND FILE NAME THAT YOU WANT TO EXPORT TO WITH CSV EXTENSION HERE' -NoTypeInformation -Append
 }
-
     } 
-
 }
