@@ -1,0 +1,97 @@
+
+# run the screaming frog crawl
+cd "C:\Program Files (x86)\Screaming Frog SEO Spider"
+$env:Path = $env:Path + ";C:\Program Files (x86)\Screaming Frog SEO Spider"
+
+$startingURL = "https://mikeosolinski.co.uk"
+ScreamingFrogSEOSpiderCli.exe --crawl $startingURL --headless --save-crawl --config “C:\powershell\ignorerobots.seospiderconfig" --output-folder “C:\\powershell\" --export-tabs "Internal:HTML,Response Codes:Client Error (4xx)"
+
+#create an excel document to contain the data
+$xl = New-Object -ComObject Excel.Application
+$xl.Visible = $true
+
+#add a workbook to the excel object
+$workbook1 = $xl.WorkBooks.Add()
+
+#add the sheet to contain long page titles
+$lngPageTitles = $workbook1.Worksheets.Item(1) 
+$lngPageTitles.Name = 'Long Page Titles'
+
+#create the column headers for long page titles
+$lngPageTitles.Cells.Item(1,1) = 'Address' 
+$lngPageTitles.Cells.Item(1,2) = 'Status' 
+$lngPageTitles.Cells.Item(1,3) = 'Title Length'
+
+
+#add the sheet for non indexable pages
+$nonIndexable = $workbook1.Worksheets.add()
+$nonIndexable.Name = 'Non Indexable Pages'
+
+#create the column headers non indexable pages
+$nonIndexable.Cells.Item(1,1) = 'Address' 
+$nonIndexable.Cells.Item(1,2) = 'Status' 
+$nonIndexable.Cells.Item(1,3) = 'Indexability'
+
+#add the sheet for missing META descriptions
+$missingMETA = $workbook1.Worksheets.add()
+$missingMETA.Name = 'Missing META Descriptions'
+
+#create the column headers for missing META descriptions
+$missingMETA.Cells.Item(1,1) = 'Address'
+
+#remove the first row from the csv file which contains the SF export type eg Internal - HTML
+(Get-Content 'C:\powershell\internal_html.csv' | Select-Object -Skip 1) | Set-Content 'C:\powershell\internal_html.csv'
+
+
+#import the title length data from the screaming frog crawl
+$titledata = Import-Csv -Path 'C:\powershell\internal_html.csv'|
+select Address, Status,'Title 1 Length'|
+where Status -eq 'OK'|
+where 'Title 1 Length' -gt 55
+
+#iterate through the records and add data to the sheet
+$i = 2
+foreach($record in $titledata) 
+{ 
+$titledata.Address
+$titledata.'Title 1 Length'
+$lngPageTitles.cells.item($i,1) = $record.Address 
+$lngPageTitles.cells.item($i,2) = $record.Status 
+$lngPageTitles.cells.item($i,3) = $record.'Title 1 Length' 
+$i++ 
+}
+
+#non indexable pages
+
+#import the non indexable page data from the screaming frog crawl
+$titledata = Import-Csv -Path 'C:\powershell\internal_html.csv'|
+select Address,Status,Indexability|
+where Indexability -eq 'Non-Indexable'
+
+#iterate through the records and add data to the sheet
+$i = 2
+foreach($record in $titledata) 
+{ 
+$nonIndexable.cells.item($i,1) = $record.Address 
+$nonIndexable.cells.item($i,2) = $record.Status 
+$nonIndexable.cells.item($i,3) = $record.Indexability
+$i++ 
+}
+
+
+# missing META descriptions
+
+#import the non misssing meta description data from the screaming frog crawl
+$titledata = Import-Csv -Path 'C:\powershell\internal_html.csv'|
+select Address,'Meta Decription 1 Length'|
+where 'Meta Decription 1 Length' -lt 1
+
+#iterate through the records and add data to the sheet
+$i = 2
+foreach($record in $titledata) 
+{ 
+$missingMETA.cells.item($i,1) = $record.Address 
+$i++ 
+}
+
+
