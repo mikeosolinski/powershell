@@ -1,0 +1,25 @@
+#create an array
+$myArray = @()
+
+#specify a URL to test
+$url = "https://mikeosolinski.co.uk"
+
+#create a loop. I've tested 4 times but you can change to whatever you want
+for($i = 0; $i -lt 4){
+
+#get the server response time in ms
+$currentTTFB = (Measure-Command -Expression { $site = Invoke-WebRequest -Uri $url -UseBasicParsing }).Milliseconds
+
+#add to the array
+$myArray += New-Object psobject -Property @{ 'TTFB' = $currentTTFB;'URL' = $url}
+
+#pause before testing again the value below is in seconds
+Start-Sleep -s 2
+
+#increment the loop count
+$i++
+}
+
+#get the data from the array and export it to a CSV file
+$myArray | select 'TTFB', 'URL' | Export-Csv 'C:\Users\mike.osolinski\Documents\Local\pers\mikeosolinski\powershell\ttfb-test.csv' -NoTypeInformation
+$myArray
