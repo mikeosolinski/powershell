@@ -1,0 +1,461 @@
+# CHANGE THE URL BELOW TO THE ONE THAT YOU WANT TO TEST
+$urltotest = 'https://mikeosolinski.co.uk'
+
+#update the path to save files to from C:\SiteSpeedData\TOOL-OUTPUT\ttfb-test.csv to whatever you want. avoid spaces in path/filenames
+
+#any questions on how to run this ping me on twitter at https://twitter.com/Fearless_Shultz
+
+#create an array
+$myArray = @()
+
+
+#create a loop to ping the server x number of times. I've tested 8 times but you can change to whatever you want by changing the last value in the line below
+for($i = 0; $i -lt 8){
+
+#get the server response time in ms
+$currentTTFB = (Measure-Command -Expression { $site = Invoke-WebRequest -Uri $urltotest -UseBasicParsing }).Milliseconds
+
+#add to the array
+$myArray += New-Object psobject -Property @{ 'TTFB' = $currentTTFB;'URL' = $urltotest}
+
+#pause before testing again the value below is in seconds
+Start-Sleep -s 2
+
+#increment the loop count
+$i++
+}
+
+#get the data from the array and export it to a CSV file
+$myArray | select 'TTFB', 'URL' | Export-Csv 'C:\SiteSpeedData\TOOL-OUTPUT\ttfb-test.csv' -NoTypeInformation
+$myArray
+
+
+
+$currenturl = 'https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=' + $urltotest
+$testresults = invoke-restmethod -uri $currenturl
+
+
+# GET INITIAL PERFORMANCE METRICS
+$FMP = $testresults.lighthouseResult.audits.'first-meaningful-paint'.score
+$FCP = $testresults.lighthouseResult.audits.'first-contentful-paint'.score
+$speedIndex = $testresults.lighthouseResult.audits.'speed-index'.score
+$FI = $testresults.lighthouseResult.audits.interactive.score
+$CPUIdle = $testresults.lighthouseResult.audits.'first-cpu-idle'.score
+
+$perfMetricsContainer = New-Object PSObject -property @{'First Meaningful Paint'=$FMP;'First Contentful Paint'=$FCP;'Speed Index'=$speedIndex;'First CPU Idle'=$CPUIdle}|
+export-csv 'C:\SiteSpeedData\TOOL-OUTPUT\speed-metrics.csv' -notypeinformation
+
+
+$testresults.lighthouseresult.audits.'render-blocking-resources'.details.items
+$arraycount = $testresults.lighthouseresult.audits.'render-blocking-resources'.details.items.count
+for($i = 0; $i -le $arraycount; $i++){
+$element = $testresults.lighthouseresult.audits.'render-blocking-resources'.details.items.getvalue($i)
+$element | export-csv 'C:\SiteSpeedData\TOOL-OUTPUT\render-blocking.csv' -notypeinformation -append
+}
+
+$networkrequestarray = $testresults.lighthouseresult.audits.'network-requests'.details.items.count
+
+for($i = 0; $i -le $networkrequestarray; $i++){
+$element = $testresults.lighthouseresult.audits.'network-requests'.details.items.getvalue($i)
+$element | export-csv 'C:\SiteSpeedData\TOOL-OUTPUT\network-requests.csv' -notypeinformation -append
+}
+
+$cachedResourcesArray = $testresults.lighthouseResult.audits.'uses-long-cache-ttl'.details.items.count
+
+for($i = 0; $i -le $cachedResourcesArray; $i++){
+$element = $testresults.lighthouseresult.audits.'uses-long-cache-ttl'.details.items.getvalue($i)
+$element | export-csv 'C:\SiteSpeedData\TOOL-OUTPUT\resource-caching.csv' -notypeinformation -append
+}
+
+$unusedCSSArray = $testresults.lighthouseResult.audits.'unused-css-rules'.details.items.count
+
+for($i = 0; $i -le $unusedCSSArray; $i++){
+$element = $testresults.lighthouseresult.audits.'unused-css-rules'.details.items.getvalue($i)
+$element | export-csv 'C:\SiteSpeedData\TOOL-OUTPUT\unused-css-rules.csv' -notypeinformation -append
+}
+
+$unMinifiedCSS = $testresults.lighthouseResult.audits.'unminified-ccss'.details.items.count
+
+for($i = 0; $i -le $unMinifiedCSS; $i++){
+$element = $testresults.lighthouseresult.audits.'unminified-css'.details.items.getvalue($i)
+$element | export-csv 'C:\SiteSpeedData\TOOL-OUTPUT\unminified-css.csv' -notypeinformation -append
+}
+
+$unMinifiedJS = $testresults.lighthouseResult.audits.'unminified-javascript'.details.items.count
+
+for($i = 0; $i -le $unMinifiedJS; $i++){
+$element = $testresults.lighthouseresult.audits.'unminified-javascript'.details.items.getvalue($i)
+$element | export-csv 'C:\SiteSpeedData\TOOL-OUTPUT\sitespeedaudits\unminified-javascript.csv' -notypeinformation -append
+}
+
+$fontDisplayArray = $testresults.lighthouseResult.audits.'font-display'.details.items.count
+
+for($i = 0; $i -le $fontDisplayArray; $i++){
+$element = $testresults.lighthouseresult.audits.'font-display'.details.items.getvalue($i)
+$element | export-csv 'C:\SiteSpeedData\TOOL-OUTPUT\font-display.csv' -notypeinformation -append
+}
+
+$offscreenImageArray = $testresults.lighthouseResult.audits.'offscreen-images'.details.items.count
+
+for($i = 0; $i -le $offscreenImageArray; $i++){
+$element = $testresults.lighthouseresult.audits.'offscreen-images'.details.items.getvalue($i)
+$element | export-csv 'C:\SiteSpeedData\TOOL-OUTPUT\offscreen-images.csv' -notypeinformation -append
+}
+
+$webPArray = $testresults.lighthouseResult.audits.'uses-webp-images'.details.items.count
+
+for($i = 0; $i -le $webPArray; $i++){
+$element = $testresults.lighthouseresult.audits.'uses-webp-images'.details.items.getvalue($i)
+$element | export-csv 'C:\SiteSpeedData\TOOL-OUTPUT\webp-images.csv' -notypeinformation -append
+}
+
+############################################################# CREATE THE EXCEL DOCUMENT ########################################################
+
+#create an excel document to contain the data
+$xl = New-Object -ComObject Excel.Application
+$xl.Visible = $true
+
+#add a workbook to the excel object
+$workbook1 = $xl.WorkBooks.Add()
+
+
+
+
+########################################## HIDDEN FONTS ##################################################
+
+
+
+#add the sheet to hidden fonts
+$fntDisplay = $workbook1.Worksheets.Item(1) 
+$fntDisplay.Name = 'Font Hidden During Load'
+
+#create the column headers for hidden fonts
+$fntDisplay.Cells.Item(1,1) = 'Wasted Miliseconds' 
+$fntDisplay.Cells.Item(1,2) = 'Font URL' 
+
+
+#import the title length data from the screaming frog crawl
+$fntDisplayData = Import-Csv -Path 'C:\SiteSpeedData\TOOL-OUTPUT\font-display.csv'|
+select wastedMs, URL
+
+#add the sheet to show hidden fonts
+$fntDisplaySheet = $workbook1.Worksheets.Item(1) 
+$fntDisplaySheet.Name = 'Font Hidden During Load'
+
+#create the column headers for long page titles
+$fntDisplaySheet.Cells.Item(1,1) = 'Wasted Miliseconds' 
+$fntDisplaySheet.Cells.Item(1,2) = 'Font URL' 
+
+#iterate through the records and add data to the sheet
+$i = 2
+foreach($record in $fntDisplayData) 
+{ 
+$fntDisplaySheet.cells.item($i,1) = $record.wastedMs 
+$fntDisplaySheet.cells.item($i,2) = $record.URL 
+$i++ 
+}
+
+
+########################################## NETWORK REQUESTS ##################################################
+
+
+
+#import the title length data from the screaming frog crawl
+$networkRequestData = Import-Csv -Path 'C:\SiteSpeedData\TOOL-OUTPUT\network-requests.csv'|
+select resourceSize,endTime,startTime,transferSize,url,statusCode,resourceType,mimeType
+
+#add the sheet for non indexable pages
+$networkRequestSheet = $workbook1.Worksheets.add()
+$networkRequestSheet.Name = 'Network Requests'
+
+#create the column headers non indexable pages
+$networkRequestSheet.Cells.Item(1,1) = 'resourceSize' 
+$networkRequestSheet.Cells.Item(1,2) = 'endTime' 
+$networkRequestSheet.Cells.Item(1,3) = 'startTime'
+$networkRequestSheet.Cells.Item(1,4) = 'transferSize'
+$networkRequestSheet.Cells.Item(1,5) = 'url'
+$networkRequestSheet.Cells.Item(1,6) = 'statusCode'
+$networkRequestSheet.Cells.Item(1,7) = 'resourceType'
+$networkRequestSheet.Cells.Item(1,8) = 'mimeType'
+
+
+#iterate through the records and add data to the sheet
+$i = 2
+foreach($record in $networkRequestData) 
+{ 
+$networkRequestSheet.cells.item($i,1) = $record.resourceSize 
+$networkRequestSheet.cells.item($i,2) = $record.endTime
+$networkRequestSheet.cells.item($i,3) = $record.startTime
+$networkRequestSheet.cells.item($i,4) = $record.transferSize
+$networkRequestSheet.cells.item($i,5) = $record.url
+$networkRequestSheet.cells.item($i,6) = $record.statusCode
+$networkRequestSheet.cells.item($i,7) = $record.resourceType
+$networkRequestSheet.cells.item($i,8) = $record.mimeType
+
+
+
+$i++ 
+}
+
+########################################## OFFSCREEN IMAGES ##################################################
+
+
+
+#import the title length data from the screaming frog crawl
+$offScreenImageData = Import-Csv -Path 'C:\SiteSpeedData\TOOL-OUTPUT\offscreen-images.csv'|
+select totalBytes,wastedBytes,wastedPercent,url,requestStartTime
+
+#add the sheet for offscreen images
+$offScreenImageSheet = $workbook1.Worksheets.add()
+$offScreenImageSheet.Name = 'Offscreen Images'
+
+#create the column headers for offscreen images
+$offScreenImageSheet.Cells.Item(1,1) = 'totalBytes' 
+$offScreenImageSheet.Cells.Item(1,2) = 'wastedBytes' 
+$offScreenImageSheet.Cells.Item(1,3) = 'wastedPercent'
+$offScreenImageSheet.Cells.Item(1,4) = 'url'
+$offScreenImageSheet.Cells.Item(1,5) = 'requestStartTime'
+
+
+
+#iterate through the records and add data to the sheet
+$i = 2
+foreach($record in $offScreenImageData) 
+{ 
+$offScreenImageSheet.cells.item($i,1) = $record.totalBytes 
+$offScreenImageSheet.cells.item($i,2) = $record.wastedBytes
+$offScreenImageSheet.cells.item($i,3) = $record.wastedPercent
+$offScreenImageSheet.cells.item($i,4) = $record.url
+$offScreenImageSheet.cells.item($i,5) = $record.requestStartTime
+
+
+$i++ 
+}
+
+########################################## RENDER BLOCKING SCRIPTS ##################################################
+
+
+
+#import the title length data from the screaming frog crawl
+$renderBlockingData = Import-Csv -Path 'C:\SiteSpeedData\TOOL-OUTPUT\render-blocking.csv'|
+select url,totalBytes, wastedMs
+
+
+#add the sheet for offscreen images
+$renderBlockingSheet = $workbook1.Worksheets.add()
+$renderBlockingSheet.Name = 'Render Blocking Scripts'
+
+#create the column headers for render blocking scripts
+$renderBlockingSheet.Cells.Item(1,1) = 'url'
+$renderBlockingSheet.Cells.Item(1,2) = 'totalBytes'
+$renderBlockingSheet.Cells.Item(1,3) = 'wastedMs'
+
+
+
+#iterate through the records and add data to the sheet
+$i = 2
+foreach($record in $renderBlockingData)
+{ 
+$renderBlockingSheet.cells.item($i,1) = $record.url
+$renderBlockingSheet.cells.item($i,2) = $record.totalBytes
+$renderBlockingSheet.cells.item($i,3) = $record.wastedMs
+
+
+
+$i++ 
+}
+
+########################################## RESOURCE CACHING ##################################################
+
+
+
+#import the title length data from the screaming frog crawl
+$cachingData = Import-Csv -Path 'C:\SiteSpeedData\TOOL-OUTPUT\resource-caching.csv'|
+select cacheHitProbability,url,cacheLifetimeMs,totalBytes,wastedBytes
+
+
+#add the sheet for caching TTLs
+$cachingSheet = $workbook1.Worksheets.add()
+$cachingSheet.Name = 'Cache Lifetimes'
+
+#create the column headers for render blocking scripts
+$cachingSheet.Cells.Item(1,1) = 'cacheHitProbability'
+$cachingSheet.Cells.Item(1,2) = 'url'
+$cachingSheet.Cells.Item(1,3) = 'cacheLifetimeMs'
+$cachingSheet.Cells.Item(1,4) = 'totalBytes'
+$cachingSheet.Cells.Item(1,5) = 'wastedBytes'
+
+#iterate through the records and add data to the sheet
+$i = 2
+foreach($record in $cachingData)
+{ 
+$cachingSheet.cells.item($i,1) = $record.cacheHitProbability
+$cachingSheet.cells.item($i,2) = $record.url
+$cachingSheet.cells.item($i,3) = $record.cacheLifetimeMs
+$cachingSheet.cells.item($i,4) = $record.totalBytes
+$cachingSheet.cells.item($i,5) = $record.wastedBytes
+
+$i++ 
+}
+
+########################################## SPEED METRICS ##################################################
+
+
+
+#import the title length data from the screaming frog crawl
+$cachingData = Import-Csv -Path 'C:\SiteSpeedData\TOOL-OUTPUT\speed-metrics.csv'|
+select 'First CPU Idle','First Meaningful Paint','First Contentful Paint','Speed Index'
+
+
+#add the sheet speed metrics
+$speedMetricsSheet = $workbook1.Worksheets.add()
+$speedMetricsSheet.Name = 'Speed Metrics'
+
+#create the column headers for speed Metrics
+$speedMetricsSheet.Cells.Item(1,1) = 'First CPU Idle'
+$speedMetricsSheet.Cells.Item(1,2) = 'First Meaningful Paint'
+$speedMetricsSheet.Cells.Item(1,3) = 'First Contentful Paint'
+$speedMetricsSheet.Cells.Item(1,4) = 'Speed Index'
+
+#iterate through the records and add data to the sheet
+$i = 2
+foreach($record in $cachingData)
+{ 
+$speedMetricsSheet.cells.item($i,1) = $record.'First CPU Idle'
+$speedMetricsSheet.cells.item($i,2) = $record.'First Meaningful Paint'
+$speedMetricsSheet.cells.item($i,3) = $record.'First Contentful Paint'
+$speedMetricsSheet.cells.item($i,4) = $record.'Speed Index'
+
+$i++ 
+}
+
+########################################## UNMINIFIED CSS ##################################################
+
+
+
+#import the title length data from the screaming frog crawl
+$unminifiedCSSData = Import-Csv -Path 'C:\SiteSpeedData\TOOL-OUTPUT\unminified-css.csv'|
+select url,totalBytes,wastedBytes,wastedPercent
+
+
+#add the sheet speed metrics
+$unminifiedCSSSheet = $workbook1.Worksheets.add()
+$unminifiedCSSSheet.Name = 'Unminified CSS'
+
+#create the column headers for speed Metrics
+$unminifiedCSSSheet.Cells.Item(1,1) = 'URL'
+$unminifiedCSSSheet.Cells.Item(1,2) = 'Total Bytes'
+$unminifiedCSSSheet.Cells.Item(1,3) = 'Wasted Bytes'
+$unminifiedCSSSheet.Cells.Item(1,4) = 'Wasted Percentage'
+
+#iterate through the records and add data to the sheet
+$i = 2
+foreach($record in $unminifiedCSSData)
+{ 
+$unminifiedCSSSheet.cells.item($i,1) = $record.'url'
+$unminifiedCSSSheet.cells.item($i,2) = $record.'totalBytes'
+$unminifiedCSSSheet.cells.item($i,3) = $record.'wastedBytes'
+$unminifiedCSSSheet.cells.item($i,4) = $record.'wastedPercent'
+
+$i++ 
+}
+
+########################################## UNUSED CSS ##################################################
+
+
+
+#import the title length data from the screaming frog crawl
+$unusedCSSData = Import-Csv -Path 'C:\SiteSpeedData\TOOL-OUTPUT\unused-css-rules.csv'|
+select totalBytes,wastedBytes,wastedPercent,url
+
+
+#add the sheet speed metrics
+$unusedCSSSheet = $workbook1.Worksheets.add()
+$unusedCSSSheet.Name = 'Unused CSS'
+
+#create the column headers for speed Metrics
+$unusedCSSSheet.Cells.Item(1,1) = 'Total Bytes'
+$unusedCSSSheet.Cells.Item(1,2) = 'Wasted Bytes'
+$unusedCSSSheet.Cells.Item(1,3) = 'Wasted Percentage'
+$unusedCSSSheet.Cells.Item(1,4) = 'URL'
+
+#iterate through the records and add data to the sheet
+$i = 2
+foreach($record in $unusedCSSData)
+{ 
+$unusedCSSSheet.cells.item($i,1) = $record.'totalBytes'
+$unusedCSSSheet.cells.item($i,2) = $record.'wastedBytes'
+$unusedCSSSheet.cells.item($i,3) = $record.'wastedPercent'
+$unusedCSSSheet.cells.item($i,4) = $record.'url'
+
+$i++ 
+}
+
+########################################## WEBP IMAGE OPPORTUNTIES ##################################################
+
+
+
+#import the title length data from the screaming frog crawl
+$webpImageData = Import-Csv -Path 'C:\SiteSpeedData\TOOL-OUTPUT\webp-images.csv'|
+select fromProtocol,url,isCrossOrigin,totalBytes,wastedBytes
+
+
+#add the sheet speed metrics
+$webpImageSheet = $workbook1.Worksheets.add()
+$webpImageSheet.Name = 'WebP Image Opportunities'
+
+#create the column headers for speed Metrics
+$webpImageSheet.Cells.Item(1,1) = 'From Protocol'
+$webpImageSheet.Cells.Item(1,2) = 'URL'
+$webpImageSheet.Cells.Item(1,3) = 'Is Cross Origin'
+$webpImageSheet.Cells.Item(1,4) = 'Total Bytes'
+$webpImageSheet.Cells.Item(1,5) = 'Wasted Bytes'
+
+
+#iterate through the records and add data to the sheet
+$i = 2
+foreach($record in $webpImageData)
+{ 
+$webpImageSheet.cells.item($i,1) = $record.'fromProtocol'
+$webpImageSheet.cells.item($i,2) = $record.'url'
+$webpImageSheet.cells.item($i,3) = $record.'isCrossOrigin'
+$webpImageSheet.cells.item($i,4) = $record.'totalBytes'
+$webpImageSheet.cells.item($i,5) = $record.'wastedBytes'
+
+
+$i++ 
+}
+
+########################################## TIME TO FIRST BYTE TEST ##################################################
+
+
+
+#import the TTFB Data
+$ttfbData = Import-Csv -Path 'C:\SiteSpeedData\TOOL-OUTPUT\ttfb-test.csv'|
+select TTFB,URL
+
+
+#add the sheet speed metrics
+$ttfbSheet = $workbook1.Worksheets.add()
+$ttfbSheet.Name = 'TTFB Test'
+
+#create the column headers for time to first byte
+$ttfbSheet.Cells.Item(1,1) = 'Time to First Byte'
+$ttfbSheet.Cells.Item(1,2) = 'URL'
+
+
+#iterate through the records and add data to the sheet
+$i = 2
+foreach($record in $ttfbData)
+{ 
+$ttfbSheet.cells.item($i,1) = $record.'TTFB'
+$ttfbSheet.cells.item($i,2) = $record.'URL'
+
+
+$i++ 
+}
+
+
+# save the excel workbook
+$workbook1.SaveAs('C:\SiteSpeedData\TOOL-OUTPUT\SITE-SPEED-DATA.xls')
+$excel.Quit()
