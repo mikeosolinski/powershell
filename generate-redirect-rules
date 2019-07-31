@@ -1,0 +1,35 @@
+#for this script you will first need to run a screaming frog crawl and export the redirect_and_canonical_chains report to reference below
+#next version will contain script to run the crawl for you automatically.
+
+
+#remove the first row from the csv file which contains the SF export type eg Internal - HTML
+(Get-Content 'INSERT PATH TO redirect_and_canonical_chains.csv HERE' | Select-Object -Skip 1) | Set-Content 'INSERT PATH TO redirect_and_canonical_chains.csv HERE'
+
+
+#create a variable to contain the SF data and import the CSV file
+$myObjectsArray = Import-Csv "INSERT PATH TO redirect_and_canonical_chains.csv HERE" |
+
+#select just the records where the number of redirects is greater than 1
+Where { $_."Number of Redirects" -gt 1}
+
+#create an array variable to contain the records
+$newArray = @()
+
+#pipe the results out to the newly created array
+$myObjectsArray |
+ForEach-Object{
+$redirectType = "Redirect 301 "
+$addressToRedirectFrom = $_.Address -replace
+
+#the regular expression below stripts out the protocal and host name from the URL that is being redirected from
+'^(?:https?:\/\/)?(?:[^@\/\n]+@)?(?:www\.)?([^:\/\n]+)', ''
+$addressToRedirectTo = $_.'Final Address'
+
+#concatanate the variables above to generate the redirect rule
+$rewriteRule = $redirectType + $addressToRedirectFrom + ' ' + $addressToRedirectTo
+
+#add the rewrite rule to the array
+$newArray += $rewriteRule
+}
+#export the array to a new CSV file
+$newArray | Out-File "INSERT PATH TO EXPORT TO AND CSV FILE NAME TO USE HERE"
