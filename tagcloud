@@ -1,0 +1,6 @@
+ $w = Invoke-WebRequest -Uri 'https://moz.com/learn/seo/what-is-seo'
+ $w | Get-Member
+ $w = $w.Links |
+ Select innerHTML
+ $w | Out-File 'C:\scripts\link-text.txt'
+ Get-Content C:\scripts\link-text.txt | New-WordCloud -Path C:\scripts\wordcloud.svg -ImageSize 1080p
